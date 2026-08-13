@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""                                            Cipher Tool - AES-256-GCM + Scrypt
-Modern TUI Edition (Raw Output Fix)            """
+"""
+Cipher Tool - AES-256-GCM + Scrypt
+Modern TUI Edition (Raw Output Fix)
+"""
 
-import os                                      import sys
-import time                                    import math
+import os
+import sys
+import time
+import math
 import base64
-import secrets                                 import threading
+import secrets
+import threading
 from typing import Callable, List, Optional
 
 try:
@@ -13,7 +18,7 @@ try:
     from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
     from cryptography.hazmat.backends import default_backend
     from cryptography.exceptions import InvalidTag
-
+    
     from rich.console import Console
     from rich.panel import Panel
     from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
@@ -53,13 +58,13 @@ def run_animated_pipeline(action: Callable[[], bytes], mode: str) -> bytes:
         console=console,
         expand=True
     ) as progress:
-
+        
         task_init = progress.add_task("[yellow]Initializing Cryptographic Parameters...", total=100)
         progress.update(task_init, completed=100, description="[bold green]✔ Parameters Initialized")
         time.sleep(0.3)
 
         task_scrypt = progress.add_task("[cyan]Deriving AES-256 Key (Scrypt KDF)...", total=100)
-
+        
         result: List[Optional[bytes]] = [None]
         error: List[Optional[BaseException]] = [None]
 
@@ -74,9 +79,9 @@ def run_animated_pipeline(action: Callable[[], bytes], mode: str) -> bytes:
         start_time = time.perf_counter()
 
         subphases = [
-            "Allocating memory buffer...",
-            "Executing Salsa20/8 core...",
-            "Transforming matrix blocks...",
+            "Allocating memory buffer...", 
+            "Executing Salsa20/8 core...", 
+            "Transforming matrix blocks...", 
             "Finalizing bits..."
         ]
 
@@ -84,16 +89,16 @@ def run_animated_pipeline(action: Callable[[], bytes], mode: str) -> bytes:
             elapsed = time.perf_counter() - start_time
             prog = 99.0 * (1.0 - math.exp(-elapsed / 0.45))
             idx = min(len(subphases) - 1, int(elapsed / 0.22))
-
+            
             progress.update(task_scrypt, completed=prog, description=f"[cyan]Scrypt KDF: {subphases[idx]}")
             time.sleep(0.04)
 
         t.join()
         if error[0]:
             raise error[0]
-
+            
         progress.update(task_scrypt, completed=100, description="[bold green]✔ Key Material Derived (256-bit)")
-
+        
         task_cipher = progress.add_task(f"[magenta]{mode} payload...", total=100)
         time.sleep(0.2)
         progress.update(task_cipher, completed=100, description=f"[bold green]✔ {mode} Complete")
@@ -172,7 +177,7 @@ def get_multiline_input(title: str, style: str) -> str:
 def prompt_passphrase() -> str:
     console.print("\n[bold yellow]🔑 Enter secret key phrase (Visible for verification):[/]")
     phrase = input("> ")
-
+    
     if not phrase:
         console.print("[bold red]❌ Passphrase cannot be empty.[/]")
         sys.exit(1)
@@ -185,7 +190,7 @@ def print_banner() -> None:
     banner_text = Text(justify="center")
     banner_text.append("🔐 CIPHER TOOL\n", style="bold cyan")
     banner_text.append(f"Version {APP_VERSION} | AES-256-GCM + Scrypt", style="dim")
-
+    
     console.print(Panel(banner_text, border_style="cyan", box=box.DOUBLE_EDGE, expand=False))
 
 def main() -> None:
@@ -205,9 +210,9 @@ def main() -> None:
         menu.add_row("[ 1 ]", "📨 Encrypt a message")
         menu.add_row("[ 2 ]", "🔓 Decrypt a message")
         menu.add_row("[ 3 ]", "👋 Exit")
-
+        
         console.print(Panel(menu, title="[bold]Main Menu[/]", border_style="blue", expand=False))
-
+        
         choice = Prompt.ask("[bold cyan]Select an option[/]", choices=["1", "2", "3"], default="1")
 
         if choice == '1':
@@ -215,20 +220,20 @@ def main() -> None:
             if plaintext:
                 console.print()
                 ct = encrypt(plaintext, passphrase)
-
+                
                 # Bypassing Rich entirely for the final output string to prevent formatting corruption
-                console.print("\n[bold yellow] 📦 CIPHERTEXT READY (Copy below):[/]")
+                console.print("\n[bold yellow]📦 CIPHERTEXT READY (Copy below):[/]")
                 print(f"\033[1;32m{ct}\033[0m")
             else:
                 console.print("[bold red]❌ Cannot encrypt empty text.[/]")
-
+            
             Prompt.ask("\n[dim]Press Enter to return to menu...[/]")
 
         elif choice == '2':
             console.print("\n[bold cyan]📋 Paste ciphertext (single line):[/]")
             # Automatically strip out spaces or newlines from messy pastes
             ciphertext = input("> ").strip().replace(" ", "").replace("\n", "")
-
+            
             if ciphertext:
                 console.print()
                 pt = decrypt(ciphertext, passphrase)
@@ -238,7 +243,7 @@ def main() -> None:
                     print(f"\033[1;37m{pt}\033[0m")
             else:
                 console.print("[bold red]❌ No ciphertext provided.[/]")
-
+            
             Prompt.ask("\n[dim]Press Enter to return to menu...[/]")
 
         elif choice == '3':
